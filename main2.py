@@ -8,6 +8,9 @@ image_path = None
 image_metadata = {}
 previous_state = None
 
+dog_filter = Image.open("C:\\Users\\murilo.ssena\\Documents\\AulaProcessamentoImagem-main\\tumblr_inline_o3st80k84m1tfizcc_540.png")
+
+
 def resize_image(img, new_width=None, new_height=None, keep_aspect_ratio=True):
     largura, altura = img.size
     if keep_aspect_ratio:
@@ -106,6 +109,39 @@ def apply_gray_filter():
         image_atual.save(img_bytes, format='PNG')
         window['-IMAGE-'].update(data=img_bytes.getvalue())
 
+def apply_brown_filter():
+    global image_atual
+    global previous_state
+    if image_atual:
+        largura, altura = image_atual.size
+        pixels = image_atual.load()
+        previous_state = image_atual.copy()
+        for w in range(largura):
+            for h in range(altura):
+                r, g, b = image_atual.getpixel((w, h))
+                gray = int(0.3 * r + 0.59 * g + 0.11 * b)
+                new_r = min(gray + 110, 255)
+                new_g = min(gray + 70, 255)
+                new_b = gray
+                pixels[w, h] = (new_r, new_g, new_b)
+
+        img_bytes = io.BytesIO()
+        image_atual.save(img_bytes, format='PNG')
+        window['-IMAGE-'].update(data=img_bytes.getvalue())
+
+def overlay_dog_filter():
+    global image_atual
+    if image_atual:
+        largura, altura = image_atual.size
+        resized_filter = dog_filter.resize((largura, altura), Image.Resampling.LANCZOS)
+        image_atual.paste(resized_filter, (0, 0), resized_filter)
+
+        img_bytes = io.BytesIO()
+        image_atual.save(img_bytes, format='PNG')
+        window['-IMAGE-'].update(data=img_bytes.getvalue())
+    else:
+        sg.popup("Nenhuma imagem aberta")
+
 def resize_image_and_show(new_width=None, new_height=None, keep_aspect_ratio=True):
     global image_atual
     if image_atual:
@@ -118,16 +154,14 @@ def resize_image_and_show(new_width=None, new_height=None, keep_aspect_ratio=Tru
     else:
         sg.popup("Nenhuma imagem aberta")
 
-def validate_numeric_input(event, value):
-    if not value.isdigit() and value != '':
-        sg.popup("Por favor, insira apenas números.")
-        return False
-    return True
+def validate_and_clean_input(value):
+    cleaned_value = ''.join(filter(str.isdigit, value))
+    return cleaned_value
 
 layout = [
     [sg.Menu([
         ['Arquivo', ['Abrir', 'Salvar', 'Fechar']],
-        ['Sobre a imagem', ['Informacoes', 'Aplicar Filtro de Cinza']],
+        ['Sobre a imagem', ['Informacoes', 'Aplicar Filtro de Cinza', 'Aplicar Filtro de Cachorro', 'Aplicar Filtro Marrom']],
         ['Sobre', ['Desenvolvedor']]
     ])],
     [sg.Image(key='-IMAGE-', size=(800, 600))],
@@ -158,23 +192,29 @@ while True:
         info_image()
     elif event == 'Aplicar Filtro de Cinza':
         apply_gray_filter()
+    elif event == 'Aplicar Filtro de Cachorro':
+        overlay_dog_filter()
+    elif event == 'Aplicar Filtro Marrom':
+        apply_brown_filter()
     elif event == 'Redimensionar':
         new_width = int(values['-WIDTH-']) if values['-WIDTH-'] else None
         new_height = int(values['-HEIGHT-']) if values['-HEIGHT-'] else None
         keep_aspect_ratio = values['-ASPECT_RATIO-']
         resize_image_and_show(new_width=new_width, new_height=new_height, keep_aspect_ratio=keep_aspect_ratio)
     elif event == '-WIDTH-':
-        if validate_numeric_input(event, values['-WIDTH-']):
-            if values['-WIDTH-'] and values['-ASPECT_RATIO-']:
-                largura_atual = int(values['-WIDTH-'])
-                altura_atual = int(image_atual.size[1] * largura_atual / image_atual.size[0])
-                window['-HEIGHT-'].update(value=str(altura_atual))
+        cleaned_value = validate_and_clean_input(values['-WIDTH-'])
+        window['-WIDTH-'].update(value=cleaned_value)
+        if cleaned_value and values['-ASPECT_RATIO-']:
+            largura_atual = int(cleaned_value)
+            altura_atual = int(image_atual.size[1] * largura_atual / image_atual.size[0])
+            window['-HEIGHT-'].update(value=str(altura_atual))
     elif event == '-HEIGHT-':
-        if validate_numeric_input(event, values['-HEIGHT-']):
-            if values['-HEIGHT-'] and values['-ASPECT_RATIO-']:
-                altura_atual = int(values['-HEIGHT-'])
-                largura_atual = int(image_atual.size[0] * altura_atual / image_atual.size[1])
-                window['-WIDTH-'].update(value=str(largura_atual))
+        cleaned_value = validate_and_clean_input(values['-HEIGHT-'])
+        window['-HEIGHT-'].update(value=cleaned_value)
+        if cleaned_value and values['-ASPECT_RATIO-']:
+            altura_atual = int(cleaned_value)
+            largura_atual = int(image_atual.size[0] * altura_atual / image_atual.size[1])
+            window['-WIDTH-'].update(value=str(largura_atual))
     elif event == 'Desenvolvedor':
         sg.popup('Desenvolvido por [Seu Nome] - BCC 6º Semestre')
 
