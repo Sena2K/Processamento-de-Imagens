@@ -44,8 +44,10 @@ def open_image(filename):
     img_bytes = io.BytesIO()
     image_atual.save(img_bytes, format='PNG')
     window['-IMAGE-'].update(data=img_bytes.getvalue())
-    window['-WIDTH-'].update(value=str(image_atual.size[0]))
-    window['-HEIGHT-'].update(value=str(image_atual.size[1]))
+    window['-WIDTH-'].update(value=str(image_atual.size[0]), visible=True)
+    window['-HEIGHT-'].update(value=str(image_atual.size[1]), visible=True)
+    window['-ASPECT_RATIO-'].update(visible=True)
+    window['Redimensionar'].update(visible=True)
 
 def save_image(filename):
     global image_atual
@@ -116,6 +118,12 @@ def resize_image_and_show(new_width=None, new_height=None, keep_aspect_ratio=Tru
     else:
         sg.popup("Nenhuma imagem aberta")
 
+def validate_numeric_input(event, value):
+    if not value.isdigit() and value != '':
+        sg.popup("Por favor, insira apenas números.")
+        return False
+    return True
+
 layout = [
     [sg.Menu([
         ['Arquivo', ['Abrir', 'Salvar', 'Fechar']],
@@ -123,10 +131,10 @@ layout = [
         ['Sobre', ['Desenvolvedor']]
     ])],
     [sg.Image(key='-IMAGE-', size=(800, 600))],
-    [sg.Text('Largura:'), sg.InputText(key='-WIDTH-', size=(10, 1), enable_events=True),
-     sg.Text('Altura:'), sg.InputText(key='-HEIGHT-', size=(10, 1), enable_events=True)],
-    [sg.Checkbox('Manter Proporção', default=True, key='-ASPECT_RATIO-')],
-    [sg.Button('Redimensionar'), sg.Button('Sair')]
+    [sg.Text('Largura:'), sg.InputText(key='-WIDTH-', size=(10, 1), enable_events=True, visible=False),
+     sg.Text('Altura:'), sg.InputText(key='-HEIGHT-', size=(10, 1), enable_events=True, visible=False)],
+    [sg.Checkbox('Manter Proporção', default=True, key='-ASPECT_RATIO-', visible=False)],
+    [sg.Button('Redimensionar', visible=False), sg.Button('Sair')]
 ]
 
 window = sg.Window('Aplicativo de Imagem', layout, finalize=True)
@@ -155,14 +163,18 @@ while True:
         new_height = int(values['-HEIGHT-']) if values['-HEIGHT-'] else None
         keep_aspect_ratio = values['-ASPECT_RATIO-']
         resize_image_and_show(new_width=new_width, new_height=new_height, keep_aspect_ratio=keep_aspect_ratio)
-    elif event == '-WIDTH-' and values['-WIDTH-'] and values['-ASPECT_RATIO-']:
-        largura_atual = int(values['-WIDTH-'])
-        altura_atual = int(image_atual.size[1] * largura_atual / image_atual.size[0])
-        window['-HEIGHT-'].update(value=str(altura_atual))
-    elif event == '-HEIGHT-' and values['-HEIGHT-'] and values['-ASPECT_RATIO-']:
-        altura_atual = int(values['-HEIGHT-'])
-        largura_atual = int(image_atual.size[0] * altura_atual / image_atual.size[1])
-        window['-WIDTH-'].update(value=str(largura_atual))
+    elif event == '-WIDTH-':
+        if validate_numeric_input(event, values['-WIDTH-']):
+            if values['-WIDTH-'] and values['-ASPECT_RATIO-']:
+                largura_atual = int(values['-WIDTH-'])
+                altura_atual = int(image_atual.size[1] * largura_atual / image_atual.size[0])
+                window['-HEIGHT-'].update(value=str(altura_atual))
+    elif event == '-HEIGHT-':
+        if validate_numeric_input(event, values['-HEIGHT-']):
+            if values['-HEIGHT-'] and values['-ASPECT_RATIO-']:
+                altura_atual = int(values['-HEIGHT-'])
+                largura_atual = int(image_atual.size[0] * altura_atual / image_atual.size[1])
+                window['-WIDTH-'].update(value=str(largura_atual))
     elif event == 'Desenvolvedor':
         sg.popup('Desenvolvido por [Seu Nome] - BCC 6º Semestre')
 
