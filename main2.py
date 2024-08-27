@@ -8,8 +8,6 @@ image_path = None
 image_metadata = {}
 previous_state = None
 
-dog_filter = Image.open("C:\\Users\\murilo.ssena\\Documents\\AulaProcessamentoImagem-main\\tumblr_inline_o3st80k84m1tfizcc_540.png")
-
 
 def resize_image(img, new_width=None, new_height=None, keep_aspect_ratio=True):
     largura, altura = img.size
@@ -116,6 +114,7 @@ def apply_brown_filter():
         largura, altura = image_atual.size
         pixels = image_atual.load()
         previous_state = image_atual.copy()
+
         for w in range(largura):
             for h in range(altura):
                 r, g, b = image_atual.getpixel((w, h))
@@ -129,18 +128,23 @@ def apply_brown_filter():
         image_atual.save(img_bytes, format='PNG')
         window['-IMAGE-'].update(data=img_bytes.getvalue())
 
-def overlay_dog_filter():
+def invert_colors():
     global image_atual
+    global previous_state
     if image_atual:
         largura, altura = image_atual.size
-        resized_filter = dog_filter.resize((largura, altura), Image.Resampling.LANCZOS)
-        image_atual.paste(resized_filter, (0, 0), resized_filter)
+        pixels = image_atual.load()
+        previous_state = image_atual.copy()
+
+        for w in range(largura):
+            for h in range(altura):
+                r, g, b = image_atual.getpixel((w, h))
+                inverted_color = (255 - r, 255 - g, 255 - b)
+                pixels[w, h] = inverted_color
 
         img_bytes = io.BytesIO()
         image_atual.save(img_bytes, format='PNG')
         window['-IMAGE-'].update(data=img_bytes.getvalue())
-    else:
-        sg.popup("Nenhuma imagem aberta")
 
 def resize_image_and_show(new_width=None, new_height=None, keep_aspect_ratio=True):
     global image_atual
@@ -161,7 +165,7 @@ def validate_and_clean_input(value):
 layout = [
     [sg.Menu([
         ['Arquivo', ['Abrir', 'Salvar', 'Fechar']],
-        ['Sobre a imagem', ['Informacoes', 'Aplicar Filtro de Cinza', 'Aplicar Filtro de Cachorro', 'Aplicar Filtro Marrom']],
+        ['Sobre a imagem', ['Informacoes', 'Aplicar Filtro de Cinza', 'Aplicar Filtro Inverter Cores', 'Aplicar Filtro Marrom']],
         ['Sobre', ['Desenvolvedor']]
     ])],
     [sg.Image(key='-IMAGE-', size=(800, 600))],
@@ -192,8 +196,8 @@ while True:
         info_image()
     elif event == 'Aplicar Filtro de Cinza':
         apply_gray_filter()
-    elif event == 'Aplicar Filtro de Cachorro':
-        overlay_dog_filter()
+    elif event == 'Aplicar Filtro Inverter Cores':
+        invert_colors()
     elif event == 'Aplicar Filtro Marrom':
         apply_brown_filter()
     elif event == 'Redimensionar':
